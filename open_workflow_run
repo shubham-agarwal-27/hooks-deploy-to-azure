@@ -1,0 +1,197 @@
+#!/usr/bin/env node
+
+const fetch = require('node-fetch');
+const request = require('request');
+const opn = require('open');
+const { exec } = require('child_process');
+const fs = require('fs');
+const { exit } = require('process');
+
+const input_keys = ['github_PAT', 'tenant_id', 'workflow', 'subscription', 'resource_group', 'resource'];
+const give_inputs_err_msg = "There seems to be no give_inpts.txt file. If deleted, just create a give_inputs.txt file and follow the instructions given before";
+const err_msg = "There seems to be some problem. You can do one of the following:\n1.Disable the hooks if you want to have the code to atleast pushed to GitHub. For that, go to .git/hooks folder and append .sample to the hooks file names.\n2.You can retry with the execution.";
+/**
+ * Change the color of text
+ * @param  {String}	text 	The text to be colored
+ * @param  {String} color 	The color number
+ * @return {String}       	The colored text
+ */
+function textColor(text, color) { 
+	return `\x1b[${color}m${text}\x1b[0m`; 
+}
+/**
+ * Pause the execution for some time
+ * @param  {Number}	time 	The amount of time (in milliseconds)
+ * @return {Promise}		Resolves after a certain time
+ */
+function waitForTime(time){
+	return new Promise(resolve => {
+		setTimeout(function(){
+			resolve();
+		}, time);
+	});
+}
+/**
+ * Read the file contents
+ * @param  {String}	file_name 	The name of the file to be read
+ * @return {Array}				The array of each line content of the given file
+ */
+function getFileContent(file_name){
+	return new Promise((resolve, reject) => {
+		fs.readFile(file_name, (err, data) => {
+			if(err){
+				reject(err);
+			}
+			else{
+				resolve(data.toString().split("\n"));
+			}
+		});
+	});
+}
+/**
+ * Get all the details pertaining to a user's Github account and their subscription and resource choice.
+ * @param  {String} file_inputs 		The input file content used for getting some required field values
+ * @return {Promise}					Resolves an object that stored the user's' details
+ */
+async function getUserDetails(file_inputs){
+	var userDetails = {};
+	for(var input = 0; input < input_keys.length; input++){
+		userDetails[input_keys[input]] = file_inputs[input].replace(/\s+/g, '').split(":")[1];
+	}
+	return new Promise(function(resolve) {
+		const { exec } = require('child_process');
+		exec('git config --list', (error, stdout, stderr) => {
+			var array_stdout = stdout.split("\n");
+			for(var single_info of array_stdout){
+				var info_splitted = single_info.split("=");
+				if(info_splitted[0] === 'user.name'){
+					userDetails['username'] = info_splitted[1];
+				}
+
+				if(info_splitted[0] === 'user.email'){
+					userDetails['user_email'] = info_splitted[1];
+				}
+
+				if(info_splitted[0] === 'remote.origin.url'){
+					userDetails['repo_name'] = info_splitted[1].split("https://github.com/")[1].split("/")[1].split(".")[0];
+				}
+			}
+			resolve(userDetails);
+		});
+  	});
+}
+/**
+ * Get all the workflows existing in repository
+ * @param  {Object} userDetails     The object that stored user's information 
+ * @return {Promise}				Resolves an array of all the workflow objects
+ */
+function getWorkflows(userDetails){
+	var url = 'https://api.github.com/repos/'+userDetails['username']+'/'+userDetails['repo_name']+'/actions/workflows';
+	var opts = {
+		method: 'GET',
+		headers: {
+			'User-Agent': 'request',
+			authorization: `Bearer ${userDetails['github_PAT']}`
+		}
+	};
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('error: timeout')}, 15000);
+			fetch(url, opts)
+				.then(async res => {
+					var json = await res.json();
+					resolve(json['workflows']);
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject(error);
+					}
+					else{
+						await waitForTime(1000);
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });	
+}
+/**
+ * Get the workflows created by us
+ * @param  {Array} allWorkflowsInRepo       Array consisting of all the workflows in the repository
+ * @return {Object}				            Workflow Object that was created by us
+ */
+function getMyWorkflow(allWorkflowsInRepo){
+    var myWorkflow;
+    for(var workflow of allWorkflowsInRepo){
+        if(workflow['path'] === '.github/workflows/workflow.yml'){
+            myWorkflow = workflow;
+        }
+    }
+    return myWorkflow;
+}
+/**
+ * Get URL of our workflow run
+ * @param  {Object} userDetails     The object that stored user's information
+ * @param  {Object} myWorkflow      Workflow Object that was created by us
+ * @return {Promise}				Resolves the URL of our workflow run
+ */
+function getURLOfMyWorkflowRun(userDetails, myWorkflow){
+
+	var url = 'https://api.github.com/repos/'+userDetails['username']+'/'+userDetails['repo_name']+'/actions/workflows/'+myWorkflow['id']+'/runs';
+	var opts = {
+		method: 'GET',
+		headers: {
+			authorization: `Bearer ${userDetails['github_PAT']}`
+		}
+	};
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('error: timeout')}, 15000);
+			fetch(url, opts)
+				.then(async res => {
+					var json = await res.json();
+					resolve(json['workflow_runs'][0]['html_url']);
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject('second error');
+					}
+					else{
+						await waitForTime(1000);
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });	
+}
+
+
+async function main(){
+	try{
+		var file_inputs = await getFileContent('give_inputs.txt');
+	}
+	catch(reject){
+		console.log(give_inputs_err_msg);
+		exit(1);
+	}
+	var userDetails = await getUserDetails(file_inputs);
+	try{
+		var allWorkflowsInRepo = await getWorkflows(userDetails);
+		var myWorkflow = getMyWorkflow(allWorkflowsInRepo);
+		var urlOfMyWorkflowRun = await getURLOfMyWorkflowRun(userDetails, myWorkflow);
+	}
+	catch(reject){
+		console.log(err_msg);
+		exit(1);
+	}
+	console.log();
+	console.log("**************************You can have a look at the workflow run using the below url:**************************");
+	console.log();
+	console.log(textColor(urlOfMyWorkflowRun, 95));
+	console.log();
+	console.log("Opening the link in browser...");
+	setTimeout(() => {opn(urlOfMyWorkflowRun);},1000);
+}
+
+main();

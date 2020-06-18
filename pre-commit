@@ -1,0 +1,332 @@
+#!/usr/bin/env node 
+
+const fs = require('fs');
+const { exec } = require('child_process');
+const { exit } = require('process');
+
+const input_keys = ['github_PAT', 'tenant_id', 'workflow', 'subscription', 'resource_group', 'resource'];
+const give_inputs_err_msg = "There seems to be no give_inpts.txt file. If deleted, just create a give_inputs.txt file and follow the instructions given before";
+const workflow_err_msg = "There seems to be some issue with the templates folder. Delete the folder (if present) and run the program again."
+/**
+ * Get the contents of the file that was at the time of installation. This will be used when user messes the file.
+ * @return {String}		The content of the file that was at the time of installation
+ */
+function getFileOriginalContent(){
+	var original_content = '';
+	for(var input_key of input_keys){
+		original_content += input_key + ": \n";
+	}
+	return original_content;
+}
+/**
+ * Pause the execution for some time
+ * @param  {Number}	time 	The amount of time (in milliseconds)
+ * @return {Promise}		Resolves after a certain time
+ */
+function waitForTime(time){
+	return new Promise(resolve => {
+		setTimeout(function(){
+			resolve();
+		}, time);
+	});
+}
+/**
+ * Read the file contents
+ * @param  {String}	file_name 	The name of the file to be read
+ * @return {Array}				The array of each line content of the given file
+ */
+function getFileContent(file_name){
+	return new Promise((resolve, reject) => {
+		fs.readFile(file_name, (err, data) => {
+			if(err){
+				reject(err);
+			}
+			else{
+				resolve(data.toString().split("\n"));
+			}
+		});
+	});
+}
+/**
+ * Check if the file contents have been messed up by the user
+ * @param  {String}	file_name 	The name of the file to be checked
+ * @return {Boolean}			Returns the boolean value whether the file is messed or not
+ */
+async function checkFileContentMessed(file_name){
+	var file_messed_up = false;
+	try{
+		var user_inputs = await getFileContent(file_name);
+	}
+	catch(reject){
+		console.log(give_inputs_err_msg);
+		exit(1);
+	}
+	var split_input;
+	for(var line_number = 0; line_number < input_keys.length; line_number++){
+		split_input = user_inputs[line_number].replace(/\s+/g, '').split(":");
+		if(split_input[0] !== input_keys[line_number]){
+			file_messed_up = true;
+			break;
+		}
+	}
+	return file_messed_up;
+}
+/**
+ * Write the file with some content
+ * @param  {String}	file_name 	the name of the file to be rewritten
+ * @param  {String} content		The content to be written
+ * @return {Promise}			Resolves after the contents have been written
+ */
+async function writeFile(file_name, content){	
+	return new Promise((resolve, reject) => {
+		fs.writeFile(file_name, content, function(err){
+			if(err){
+				reject(err);
+			}
+			else
+				resolve();
+		});
+	});
+}
+/**
+ * Get all the details pertaining to a user's Github account and their subscription and resource choice.
+ * @param  {String} file_inputs 		The input file content used for getting some required field values
+ * @return {Promise}					Resolves an object that stored the user's' details
+ */
+async function getRepoName(file_inputs){
+	var repo_name = '';
+	return new Promise(function(resolve) {
+		exec('git config --list', (error, stdout, stderr) => {
+			var array_stdout = stdout.split("\n");
+			for(var single_info of array_stdout){
+				var info_splitted = single_info.split("=");
+				if(info_splitted[0] === 'remote.origin.url'){
+					repo_name = info_splitted[1].split("https://github.com/")[1].split("/")[1].split(".")[0];
+				}
+			}
+			resolve(repo_name);
+		});
+  	});
+}
+/**
+ * Get the Path to the repository
+ * @return {String}		Returns the path to the repository
+ */
+function getRepoPath(){
+	var repo_path = __dirname.split("/").pop().split('\\');
+	var temp_path = repo_path.splice(-2,2);
+	return repo_path.join('\\');
+}
+/**
+ * Get all the files in the repo
+ * @param  {String} repo_path 	The path to the repository
+ * @return {Promise}			Resolves an array of files in the repository
+ */
+function getAllFiles(repo_path){
+	return new Promise(resolve => {
+		fs.readdir(repo_path, (err, files) => {
+			resolve(files);
+		});
+	});
+}
+/**
+ * Check if it is a DotNetCore repo
+ * @param  {Array} files 	The array of files in repository
+ * @return {Promise}		Resolves a boolean value whether it is a DotNetCore Repo or not
+ */
+function isDotnetCoreRepo(files){    
+	return new Promise(resolve => {
+		resolve(
+			files.some((file) => {
+			return file.toLowerCase().endsWith("sln") || file.toLowerCase().endsWith("csproj") || file.toLowerCase().endsWith("fsproj");
+		}));
+	});
+}
+/**
+ * Check if it is a Node repo
+ * @param  {Array} files 	The array of files in repository
+ * @return {Promise}		Resolves a boolean value whether it is a Node Repo or not
+ */
+function isNodeRepo(files){
+    var nodeFilesRegex = '\\.ts$|\\.js$|package\\.json$|node_modules';
+	return new Promise(resolve => {
+		resolve(
+			files.some((file) => {
+				var result = new RegExp(nodeFilesRegex).test(file.toLowerCase());
+				return result;
+		}));
+	});
+}
+/**
+ * Check if it is a Pyton repo
+ * @param  {Array} files 	The array of files in repository
+ * @return {Promise}		Resolves a boolean value whether it is a Python Repo or not
+ */
+function isPythonRepo(files){
+    var pythonRegex = '.py$';
+	return new Promise(resolve => {
+		resolve(
+			files.some((file) => {
+			var result = new RegExp(pythonRegex).test(file.toLowerCase());
+			return result;
+		}));
+	}); 
+}
+/**
+ * Analyze the repo to get the language
+ * @param  {Array} files 	The array of files in repository
+ * @return {String}			Returms the language for the Repo
+ */
+async function getRepoAnalysis(files){
+	var repo_language;
+	var isDotnetCore = await isDotnetCoreRepo(files);
+	var isNode = await isNodeRepo(files);
+	var isPython = await isPythonRepo(files);
+	if(isDotnetCore){
+		repo_language = 'dotnet';
+	}
+	else if(isNode){
+		repo_language = 'node';
+	}
+	else if(isPython){
+		repo_language = 'python';
+	}
+	return repo_language;
+}
+/**
+ * Check if there exists a workflow that would get triggered on a push
+ * @return {Promise}	Resolves a binary value indicating whether there exists such a workflow or not
+ */
+function getPushTriggeredWorkflowExistStatus() {
+	return new Promise(resolve => {
+		exec('ls ".github/workflows', async (error, stdout, stderr) => {
+			var file_names = stdout.split("\n");
+			var workflow_triggers_on_push = 0;
+			for(var file_name of file_names){
+				if(file_name.length === 0)
+					continue;
+				try{
+					var file_content = await getFileContent('.github/workflows/'+file_name);
+					for(var line_number = 0; line_number < file_content.length; line_number++){
+						if(file_content[line_number].startsWith('on:', 0)){
+							var findingPushLineNumber = line_number;
+							while(findingPushLineNumber < file_content.length && !file_content[findingPushLineNumber].startsWith("  push:", 0)){
+								findingPushLineNumber++;
+							}
+							if(findingPushLineNumber !== file_content.length){
+								workflow_triggers_on_push = 1;
+							}
+							break;
+						}
+					}
+					if(workflow_triggers_on_push == 1)
+						break;
+				}
+				catch(reject){
+					console.log(workflow_err_msg);
+					exit(1);
+				}
+			}
+			resolve(workflow_triggers_on_push);
+		});
+	});
+}
+/**
+ * Populate the variables in the workflow template with corresponding values
+ * @param  {String} workflow_file	The template workflow file to be used
+ * @param  {String} resource_name	The name of the resource to deploy the app
+ * @return {String}  				The text of the workflow file with the variables replaced with required content
+ */
+function getWorkflowText(workflow_file, resource_name){
+	try{
+		var template = fs.readFileSync("templates/node/workflow.yml").toString();
+	}
+	catch(reject){
+		console.log(workflow_err_msg);
+		exit(1);
+	}
+	template = template.split("\n");
+	for(var line_number = 0; line_number < template.length; line_number++){
+		var line = template[line_number];
+		if(line.includes('{{{')){
+			var current_string = '';
+			for(var char_number = 0; char_number < template[line_number].length; char_number++){
+				if(line[char_number] === '{'){
+					break;
+				}
+				current_string += line[char_number];
+			}
+			current_string += resource_name
+			template[line_number] = current_string;
+			break;
+		}
+	}
+	return template.join("\n");
+}
+/**
+ * Create a new Workflow
+ * @param  {String} repo_analysis_result	Language used in the repo
+ * @param  {String} file_inputs 			The input file content used for getting some required field values
+ */
+async function createNewWorkflow(repo_analysis_result, file_inputs){
+	var workflow_triggers_on_push = await getPushTriggeredWorkflowExistStatus();
+	if(workflow_triggers_on_push){
+		console.log('--------------------------------------------------------------------------------------------');
+		console.log();
+		console.log('Another Workflow exists that will be triggered on push.. Therefore not creating new workflow..');
+		console.log();
+		console.log('---------------------------------------------------------------------------------------------');
+		console.log();
+	}
+	else{
+		var workflow = file_inputs[2].replace(/\s+/g, '').split(":")[1];
+		var workflow_file = 'templates/'+repo_analysis_result+'/'+workflow;
+		console.log();
+
+		var resource_name = file_inputs[5].replace(/\s+/g, '').split(":")[1];
+		if(resource_name === ''){
+			resource_name = await getRepoName();
+			resource_name = resource_name.replace(/[^0-9A-Z]+/gi,"");
+			resource_name = 'Res'+ resource_name;
+		}
+
+		var workflow_text = getWorkflowText(workflow_file, resource_name);
+		exec('mkdir ".github/workflows"', async(error, stdout, stderr) => {
+			try{
+				await writeFile('.github/workflows/workflow.yml', workflow_text);
+			}
+			catch(reject){
+				console.log("We have encountered some error. Please run the git commit command again..");
+				exit(1);
+			}
+			console.log("New " + workflow + " file created...");
+			exec('git add ".github"', (error, stdout, stderr) => {
+				console.log(stdout);
+			});
+		});
+	}
+}
+
+async function main(){
+	var original_content = getFileOriginalContent();
+	var file_messed = await checkFileContentMessed('give_inputs.txt');
+	if(file_messed){
+		try{
+			await writeFile('give_inputs.txt', original_content);
+		}
+		catch(reject){
+			console.log("*We have encountered some error. Please run the git commit command again..");
+			exit(1);
+		}
+		console.log("You have messed up the file. Please follow the format of giving inputs PROPERLY. Exitting...");
+		exit(1);
+	}
+	else{
+		var file_inputs = await getFileContent('give_inputs.txt');
+		var repo_path = await getRepoPath();
+		var repo_files = await getAllFiles(repo_path);
+		var repo_analysis_result = await getRepoAnalysis(repo_files);
+		createNewWorkflow(repo_analysis_result, file_inputs);
+	}
+};
+main();

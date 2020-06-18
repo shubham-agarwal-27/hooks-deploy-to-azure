@@ -1,0 +1,832 @@
+#!/usr/bin/env node 
+const port = 3000;
+const app = require("express")();
+const fetch = require('node-fetch');
+const opn = require('open');
+const sodium = require('tweetsodium');
+const fs = require('fs');
+const { exit } = require('process');
+const { v4: uuidv4 } = require('uuid');
+
+const input_keys = ['github_PAT', 'tenant_id', 'workflow', 'subscription', 'resource_group', 'resource'];
+
+const err_msg = "There seems to be some problem. You can do one of the following:\n1.Disable the hooks if you want to have the code to atleast pushed to GitHub. For that, go to .git/hooks folder and append .sample to the hooks file names.\n2.You can retry with the execution.";
+const give_inputs_err_msg = "There seems to be no give_inpts.txt file. If deleted, just create a give_inputs.txt file and follow the instructions given before";
+const writefile_err_msg = "We have encountered some error. Please run the git commit command again..";
+
+var scopeForARM = 'https://management.azure.com//user_impersonation';
+var scopeForGraph = 'offline_access%20user.read%20Directory.AccessAsUser.All';
+const client_id_graph = '3c2ff05c-d8db-48bf-ac19-9b0d7294e050';
+const client_id_arm = '33c31634-d8df-4199-99f6-ae4b3fef50cd';
+var code;
+/**
+ * Change the color of text
+ * @param  {String}	text 	The text to be colored
+ * @param  {String} color 	The color number
+ * @return {String}       	The colored text
+ */
+function textColor(text, color) { 
+	return `\x1b[${color}m${text}\x1b[0m`; 
+}
+/**
+ * Pause the execution for some time
+ * @param  {Number}	time 	The amount of time (in milliseconds)
+ * @return {Promise}		Resolves after a certain time
+ */
+function waitForTime(time){
+	return new Promise(resolve => {
+		setTimeout(function(){
+			resolve();
+		}, time);
+	});
+}
+/**
+ * Get the contents of the file that was at the time of installation. This will be used when user messes the file.
+ * @return {String}		The content of the file that was at the time of installation
+ */
+function getFileOriginalContent(){
+	var original_content = '';
+	for(var input_key of input_keys){
+		original_content += input_key + ": \n";
+	}
+	return original_content;
+}
+/**
+ * Read the file contents
+ * @param  {String}	file_name 	The name of the file to be read
+ * @return {Array}				The array of each line content of the given file
+ */
+function getFileContent(file_name){
+	return new Promise((resolve, reject) => {
+		fs.readFile(file_name, (err, data) => {
+			if(err){
+				reject(err);
+			}
+			else{
+				resolve(data.toString().split("\n"));
+			}
+		});
+	});
+}
+/**
+ * Check if the file contents have been messed up by the user
+ * @param  {String}	file_name 	The name of the file to be checked
+ * @return {Boolean}			Returns the boolean value whether the file is messed or not
+ */
+async function checkFileContentMessed(file_name){
+	var file_messed_up = false;
+	try{
+		var user_inputs = await getFileContent(file_name);
+	}
+	catch(reject){
+		console.log(give_inputs_err_msg);
+		exit(1);
+	}
+	var split_input;
+	for(var line_number = 0; line_number < input_keys.length; line_number++){
+		split_input = user_inputs[line_number].replace(/\s+/g, '').split(":");
+		if(split_input.length < 2 || split_input[0] !== input_keys[line_number]){
+			file_messed_up = true;
+			break;
+		}
+	}
+	return file_messed_up;
+}
+/**
+ * Rewrite the file with some content
+ * @param  {String}	file_name 	the name of the file to be rewritten
+ * @param  {String} content		The content to be written
+ * @return {Promise}			Resolves after the contents have been written
+ */
+async function writeFile(file_name, content){	
+	return new Promise((resolve, reject) => {
+		fs.writeFile(file_name, content, function(err){
+			if(err){
+				reject(err);
+			}
+			else
+				resolve();
+		});
+	});
+}
+/**
+ * Get all the details pertaining to a user's Github account and their subscription and resource choice.
+ * @param  {String} file_inputs 		The input file content used for getting some required field values
+ * @return {Promise}					Resolves an object that stored the user's' details
+ */
+async function getUserDetails(file_inputs){
+	var userDetails = {};
+	return new Promise(function(resolve) {
+		const { exec } = require('child_process');
+		exec('git config --list', (error, stdout, stderr) => {
+			var array_stdout = stdout.split("\n");
+			for(var single_info of array_stdout){
+				var info_splitted = single_info.split("=");
+				if(info_splitted[0] === 'user.name'){
+					userDetails['username'] = info_splitted[1];
+				}
+
+				if(info_splitted[0] === 'user.email'){
+					userDetails['user_email'] = info_splitted[1];
+				}
+
+				if(info_splitted[0] === 'remote.origin.url'){
+					userDetails['repo_name'] = info_splitted[1].split("https://github.com/")[1].split("/")[1].split(".")[0];
+				}
+			}
+
+			for(var input = 0; input < input_keys.length; input++){
+				var data = file_inputs[input].replace(/\s+/g, '').split(":")[1];
+				if(input_keys[input] === 'resource_group' && data === ''){
+					userDetails[input_keys[input]] = 'ResGrp' + userDetails['repo_name'].replace(/[^0-9A-Z]+/gi,"");
+				}
+				else if(input_keys[input] === 'resource' && data === ''){
+					userDetails[input_keys[input]] = 'Res' + userDetails['repo_name'].replace(/[^0-9A-Z]+/gi,"");
+				}
+				else
+					userDetails[input_keys[input]] = data;
+			}
+			resolve(userDetails);
+		});
+  	});
+}
+/**
+ * Open the Authentication URL in default browser
+ * @param  {String} scope 			The scopes required by the OAuth app
+ * @param  {String} callback 		The redirect URL for the OAuth app
+ * @param  {String} client_id 		Client ID of the OAuth app
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @return {Promise}				resolves once the link is open in browser
+ */
+async function openSignInLink(scope, callback, client_id, userDetails){
+	await opn('https://login.microsoftonline.com/'+userDetails['tenant_id']+'/oauth2/v2.0/authorize?client_id='+client_id+'&response_type=code&redirect_uri='+callback+'&response_mode=query&scope='+scope+'&state=AzureShubhamLogIn');
+	return new Promise(resolve => {
+		resolve();
+	});
+}
+/**
+ * Get the redirect  URL for the OAuth process
+ * @param  {String} callback 	The redirect page for the OAuth app
+ * @return {Promise}			Resolves after sending the data to the redirect page
+ */
+async function getCallback(callback){
+	return new Promise((resolve) => {
+		app.get(callback, function(req, res){
+			code = req.query['code'];
+			res.send("You are logged in, now you can go back to your terminal!");
+			resolve();
+		});
+	});
+}
+/**
+ * Get the Access token for an endpoint
+ * @param  {String} endpoint 		The endpoint used in the OAuth process.
+ * @param  {String} scope 			The scopes required by the OAuth app
+ * @param  {String} callback 		The redirect page for the OAuth app
+ * @param  {String} client_id 		Client ID of the OAuth app
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @return {Promise}				resolves after the POST request made to obtain access token
+ */
+function getAccessToken(endpoint, scope, callback, client_id, userDetails){	
+	
+	var url = 'https://login.microsoftonline.com/'+userDetails['tenant_id']+'/oauth2/v2.0/token';
+	var opts = {
+		method: 'POST',
+		body: 'client_id='+client_id+'&scope='+scope+'&redirect_uri='+callback+'&code='+code+'&grant_type=authorization_code',
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded"
+        }
+    };
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 15000);
+			fetch(url, opts)
+				.then(async res => {
+					var json = await res.json();
+					userDetails[endpoint] = json;
+					resolve();
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject(error);
+					}
+					else{
+						await waitForTime(1000);
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });
+}
+/**
+ * Get the Repository public key
+ * @param  {String} repo_name 	Repository being worked on
+ * @param  {String} username 	GitHub user name of the user
+ * @param  {String} PAT_token	GitHub PAT token of the user
+ * @return {Promise}			Resolves after the GET request made to obtain the public key for the repository
+ */
+function getRepoPublicKey(repo_name, username, PAT_token){
+	var url = 'https://api.github.com/repos/'+username+'/'+repo_name+'/actions/secrets/public-key';
+	var opts = {
+		method: 'GET',
+		headers: {
+			Authorization: `Bearer ${PAT_token}`
+        }
+    };
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 15000);
+			fetch(url, opts)
+				.then(async res => {
+					var json = await res.json();
+					resolve(json);
+				})
+				.catch(async error => {
+					if(num === 1){
+						await waitForTime(1000);
+						reject(error);
+					}
+					else{
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });
+}
+/**
+ * Create a new secret in User's GitHub account
+ * @param  {String} secret_name 					The secret name to be created
+ * @param  {Object} secret_value 					The value of the secret to be created
+ * @param  {Object} userDetails 					The object that stored user's information
+ * @return {Promise}								Resolves after the PUT request made to create a new secret
+ */
+async function CreateNewSecret(secret_name, secret_value, userDetails){
+	const username = userDetails['username'];
+	const user_email = userDetails['user_email'];
+	const repo_name = userDetails['repo_name'];
+
+	const repoPublicKey = await getRepoPublicKey(repo_name, username, userDetails['github_PAT']);
+	const key = repoPublicKey['key'];
+
+	const messageBytes = Buffer.from(JSON.stringify(secret_value));
+	const keyBytes = Buffer.from(key, 'base64');
+
+	const encryptedBytes = sodium.seal(messageBytes, keyBytes);
+	const encrypted = Buffer.from(encryptedBytes).toString('base64');
+
+	const body = {
+			message: "Adding secret",
+			committer: {
+				name: username,
+				email: user_email
+			},
+			encrypted_value: encrypted,
+			key_id: repoPublicKey['key_id']
+	};
+
+	var url = 'https://api.github.com/repos/'+username+'/'+repo_name+'/actions/secrets/'+secret_name;
+	var opts = {
+		method: 'PUT',
+		json: true,
+		body: JSON.stringify(body),
+		headers: {
+			"Content-type": "application/json",
+			Authorization: `Bearer ${userDetails['github_PAT']}`
+		}
+	};
+
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 15000);
+			fetch(url, opts)
+				.then(async res => {
+					resolve();
+				})
+				.catch(async error => {
+					if(num === 1){
+						await waitForTime(1000);
+						reject(error);
+					}
+					else{
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });
+}
+/**
+ * Get all the apps registered in user's tenant
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @return {Promise}				Resolves the list of apps that have been successfully obtained
+ */
+function getApplications(userDetails){
+	var subscriptionId = userDetails['subscription'];
+	var url = 'https://graph.microsoft.com/v1.0/applications';
+	var opts = {
+		method: 'GET',
+		headers: {
+			Authorization: userDetails['graph_details']['token_type'] + ' ' + userDetails['graph_details']['access_token']
+		}
+	};
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('error: timeout')}, 15000);
+			fetch(url, opts)
+				.then(async res => {
+					var json = await res.json();
+					resolve(json['value']);
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject('second error');
+					}
+					else{
+						await waitForTime(1000);
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });	
+}
+/**
+ * Check if there exists an app for the SPN already created by the product in user's tenant
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @param  {String} app_name 		The name of the app to be checked
+ * @return {Boolean}				The boolean value whether the app exists or not
+ */
+function newAppRequired(userDetails, app_name){
+	for(var application of userDetails['applications']){
+		if(application['displayName'] === app_name){
+			return false;
+		}
+	}
+	return true;
+}
+/**
+ * Create an App in user's tenant that will be used to create an SPN
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @param  {String} app_name 		The name of the app to be checked
+ * @return {Promise}				Resolves after the POST request made to create an app
+ */
+function createApp(userDetails, app_name){
+	var url = 'https://graph.microsoft.com/v1.0/applications';
+	var opts = {
+		method: 'POST',
+		json: true,
+		body: JSON.stringify({
+			"displayName": app_name
+		}),
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: userDetails['graph_details']['token_type'] + ' ' + userDetails['graph_details']['access_token']
+		}
+	};
+
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 20000);
+			fetch(url, opts)
+				.then(async body => {
+					var json = await body.json();
+					userDetails['new_app_details'] = json;
+					resolve();
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject(error);
+					}
+					else{
+						await waitForTime(1000);
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });
+	
+}
+/**
+ * Create a Service Principal
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @return {Promise}				Resolves after the POST request made to create an SPN
+ */
+function createServicePrincipal(userDetails){
+
+	var url = 'https://graph.microsoft.com/v1.0/serviceprincipals';
+	var opts = {
+		method: 'POST',
+		json: true,
+		body: JSON.stringify({
+			"appId": userDetails['new_app_details']['appId']
+		}),
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: userDetails['graph_details']['token_type'] + ' ' + userDetails['graph_details']['access_token']
+		}
+	};
+
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 20000);
+			fetch(url, opts)
+				.then(async body => {
+					var json = await body.json();
+					userDetails['new_app_details']['spn_details'] = json;
+					resolve();
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject(error);
+					}
+					else{
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });
+}
+/**
+ * Create a password for the new app created
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @return {Promise}				Resolves after the POST request made to create the password
+ */
+function addPassword(userDetails){
+
+	var url = 'https://graph.microsoft.com/v1.0/applications/'+userDetails['new_app_details']['id']+'/addPassword';
+	var opts = {
+		method: 'POST',
+		json: true,
+		body: JSON.stringify({
+			"passwordCredential": {
+				"displayName": "Password"+userDetails['new_app_details']['displayName']
+			}
+		}),
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: userDetails['graph_details']['token_type'] + ' ' + userDetails['graph_details']['access_token']
+		}
+	};
+
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 20000);
+			fetch(url, opts)
+				.then(async body => {
+					var json = await body.json();
+					userDetails['new_app_details']['password'] = json['secretText'];
+					resolve();
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject(error);
+					}
+					else{
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });
+}
+/**
+ * Add a role assignment to the SPN created
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @param {String} guid				GUID used as a parameter in the request URL
+ * @return {Promise}				Resolves after the PUT request made to add a role assignment
+ */
+function addRoleAssignment(userDetails, guid){
+	
+	var subscriptionId = userDetails['subscription'];
+	var resourceGroup = userDetails['resource_group'];
+	var resource = userDetails['resource'];
+	var url = 'https://management.azure.com/subscriptions/'+subscriptionId+'/resourcegroups/'+resourceGroup+ '/providers/microsoft.web/sites/'+ resource +'/providers/Microsoft.Authorization/roleAssignments/'+guid+'?api-version=2015-07-01';
+	var opts = {
+		method: 'PUT',
+		body: JSON.stringify({
+			"properties": {
+				"roleDefinitionId": "/subscriptions/"+subscriptionId+"/resourcegroups/"+resourceGroup+"/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
+				"principalId": userDetails['new_app_details']['spn_details']['id'],
+				"scope": "/subscriptions/"+subscriptionId+"/resourcegroups/"+resourceGroup+'/providers/microsoft.web/sites/'+resource
+			}
+		}),
+		headers: {
+			"Content-type": "application/json",
+			Authorization: userDetails['arm_details']['token_type'] + ' ' + userDetails['arm_details']['access_token']
+		}
+	};
+
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 20000);
+			fetch(url, opts)
+				.then(async res => {
+					json = await res.json();
+					userDetails['new_role_assignment'] = json;
+					resolve();
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject(error);
+					}
+					else{
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });
+}
+/**
+ * Authenticate the user's azure account for the Microsoft Graph endpoint
+ * @param {Object} userDetails	The object that stored user's information
+ */
+async function OAuthGraph(userDetails){
+	await openSignInLink(scopeForGraph, 'http://localhost:3000/callback', client_id_graph, userDetails);
+	await getCallback('/callback');
+	try{
+		await getAccessToken('graph_details', scopeForGraph, 'http://localhost:3000/callback', client_id_graph, userDetails);
+	}
+	catch(reject){
+		console.log(err_msg);
+		process.exit(1);
+	}
+}
+/**
+ * Authenticate the user's azure account for the ARM endpoint
+ * @param {Object} userDetails	The object that stored user's information
+ */
+async function OAuthARM(userDetails){
+	await openSignInLink(scopeForARM, 'http://localhost:3000/callbackarm', client_id_arm, userDetails);
+	await getCallback('/callbackarm');
+	try{
+		await getAccessToken('arm_details', scopeForARM, 'http://localhost:3000/callbackarm', client_id_arm, userDetails);
+	}
+	catch(reject){
+		console.log(err_msg);
+		process.exit(1);
+	}
+}
+/**
+ * Get all the resource groups in user's subscription
+ * @param  {String} token_type 		The type of access token being used
+ * @param  {String} access_token	The token value being used for authorization
+ * @param  {String} subscriptionId 	Subscription ID of the chosen subscription
+ * @return {Promise}				Resolves the array that contains all the resource group objects
+ */
+function getResourceGroups(token_type, access_token, subscriptionId){
+	var url = 'https://management.azure.com/subscriptions/'+subscriptionId+'/resourcegroups?api-version=2019-10-01';
+	var opts = {
+		method: 'GET',
+		headers: {
+			Authorization: token_type + ' ' + access_token
+		}
+	};
+
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 20000);
+			fetch(url, opts)
+				.then(async res => {
+					var json = await res.json();
+					resolve(json['value']);
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject(error);
+					}
+					else{
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });	
+}
+/**
+ * Get all the resources in user's resource group
+ * @param  {String} token_type 		The type of access token being used
+ * @param  {String} access_token	The token value being used for authorization
+ * @param  {String} subscriptionId 	Subscription ID of the chosen subscription
+ * @param  {String} resourceGroup 	Resource Group name of the chosen resource group
+ * @return {Promise}				Resolves the array that contains all the resource objects
+ */
+function getResources(token_type, access_token, subscriptionId, resourceGroup){
+	var url = "https://management.azure.com/subscriptions/"+subscriptionId+"/resourceGroups/"+resourceGroup+"/resources?$filter=resourceType eq 'Microsoft.Web/sites'&api-version=2019-10-01";
+	var opts = {
+		method: 'GET',
+		headers: {
+			Authorization: token_type + ' ' + access_token
+		}
+	};
+
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 20000);
+			fetch(url, opts)
+				.then(async res => {
+					var json = await res.json();
+					resolve(json['value']);
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject(error);
+					}
+					else{
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });	
+}
+/**
+ * Check is resurce or resource group is present or not
+ * @param  {String} to_be_checked 	the value is either resource_groups or resources
+ * @param  {String} name			the value is either resource_group or resource
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @return {Boolean}				Returns a boolean whether the resource or resource_group exists or not in user's tenant
+ */
+function checkIfExists(to_be_checked, name, userDetails){
+	for(var data of userDetails[to_be_checked]){
+		if(data['name'] === userDetails[name])
+			return true;
+	}
+	return false;
+}
+/**
+ * Create a Resource Group in user's Tenant
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @return {Promise}				Resolves after the Resource Group has been created
+ */
+function createResourceGroup(userDetails){
+	var subscriptionId = userDetails['subscription'];
+	var resource_group = userDetails['resource_group'];
+	var token_type = userDetails['arm_details']['token_type'];
+	var access_token = userDetails['arm_details']['access_token'];
+	console.log("Creating a new Resource Group: " + resource_group);
+			
+	var url = 'https://management.azure.com/subscriptions/'+subscriptionId+'/resourcegroups/'+resource_group+'?api-version=2019-10-01';
+	var opts = {
+		method: 'PUT',
+		json: true,
+		body: JSON.stringify({
+			"location": "East US",
+		}),
+		headers: {
+			"Content-type": "application/json",
+			Authorization: `${token_type} ${access_token}`
+		}
+	};
+
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 20000);
+			fetch(url, opts)
+				.then(res => {
+					console.log("Done!");
+					resolve();
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject(error);
+					}
+					else{
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });
+}
+/**
+ * Create a Resource in user's Tenant
+ * @param  {Object} userDetails 	The object that stored user's information
+ * @return {Promise}				Resolves after the Resource has been created
+ */
+function createResource(userDetails){
+	var subscriptionId = userDetails['subscription'];
+	var resource_group = userDetails['resource_group'];
+	var token_type = userDetails['arm_details']['token_type'];
+	var access_token = userDetails['arm_details']['access_token'];
+	var resource = userDetails['resource'];
+	var url = 'https://management.azure.com/subscriptions/'+subscriptionId+'/resourcegroups/'+resource_group+'/providers/Microsoft.Web/sites/'+resource+'?api-version=2019-08-01';
+	console.log("Creating a new Resource: " + resource);			
+	var opts = {
+		method: 'PUT',
+		json: true,
+		body: JSON.stringify({
+			"location": "East US",
+			"type": "Microsoft.Web/sites",
+			"properties" : {}
+		}),
+		headers: {
+			"Content-type": "application/json",
+			Authorization: `${token_type} ${access_token}`
+		}
+	};
+
+    return new Promise(function(resolve, reject) {
+		function retry(num){
+			setTimeout(() => {reject('timeout')}, 50000);
+			fetch(url, opts)
+				.then(res => {
+					console.log("Done!");
+					resolve();
+				})
+				.catch(async error => {
+					if(num === 1){
+						reject(error);
+					}
+					else{
+						retry(num-1);
+					}
+				});
+		}
+		retry(3);
+    });
+}
+
+
+async function main(){
+	var original_content = getFileOriginalContent();
+	var file_messed = await checkFileContentMessed('give_inputs.txt');
+	if(file_messed){
+		try{
+			await writeFile('give_inputs.txt', original_content);
+		}
+		catch(reject){
+			console.log(writefile_err_msg);
+			exit(1);
+		}
+			
+		console.log("You have messed up the file. Please follow the format of giving inputs PROPERLY. Exitting...");
+	}
+	else{
+		var server = app.listen(port, async function () {
+			console.log("Server Has Started!");
+		});
+		try{
+			var file_inputs = await getFileContent('give_inputs.txt');
+		}
+		catch(reject){
+			console.log(give_inputs_err_msg);
+			exit(1);
+		}
+		
+		var userDetails = await getUserDetails(file_inputs);
+		await OAuthGraph(userDetails);
+		await OAuthARM(userDetails);
+		try{
+			userDetails['resource_groups'] = await getResourceGroups(userDetails['arm_details']['token_type'], userDetails['arm_details']['access_token'], userDetails['subscription']);
+			if(!checkIfExists('resource_groups', 'resource_group', userDetails)){
+				await createResourceGroup(userDetails);
+			}
+			userDetails['resources'] = await getResources(userDetails['arm_details']['token_type'], userDetails['arm_details']['access_token'], userDetails['subscription'], userDetails['resource_group']);
+			if(!checkIfExists('resources', 'resource', userDetails)){
+				await createResource(userDetails);
+			}
+			userDetails['applications'] = await getApplications(userDetails);
+			if(newAppRequired(userDetails, 'AppForSPN'+userDetails['resource'])){
+				await createApp(userDetails, 'AppForSPN'+userDetails['resource']);
+				await createServicePrincipal(userDetails);
+				await addPassword(userDetails);
+				await waitForTime(3000);
+				var secret_value = {
+					"clientId": userDetails['new_app_details']['spn_details']['appId'],
+					"clientSecret": userDetails['new_app_details']['password'],
+					"subscriptionId": userDetails['subscription'],
+					"tenantId": userDetails['tenant_id'],
+					"activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
+					"resourceManagementEndpointUrl": "https://management.azure.com"
+				}
+				var guid = uuidv4();
+				await CreateNewSecret('SPN_CREDENTIALS_GIT_HOOKS_DTA', secret_value, userDetails);
+				await addRoleAssignment(userDetails, guid);	
+			}
+		}
+		catch(reject){
+			console.log(err_msg);
+			exit(1);
+		}
+
+		// // console.log(userDetails['graph_details']);
+		// // console.log(userDetails['arm_details']);
+		console.log();
+		console.log('***************************************************************************************************************************************************************');
+		console.log();
+		console.log(`You can have a look at the workflow runs using this link:\n\n${textColor('https://github.com/'+userDetails['username']+'/'+userDetails['repo_name']+'/actions', 95)}`);
+		console.log('                                       Or                                                                          ');
+		console.log('IF A WORKFLOW CREATED BY THIS PACKAGE IS BEING TRIGGERED THEN, You can run this command on your terminal to open the link in browser :'+ textColor(' node open_workflow_run', 95));
+		console.log();
+		console.log('***************************************************************************************************************************************************************');
+		console.log();
+		exit(0);
+	}
+};
+
+main();
