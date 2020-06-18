@@ -1,11 +1,15 @@
 {
-  "name": "ourproject",
+  "name": "@shubham-agarwal-27/hooks-deploy-to-azure",
   "version": "1.0.0",
-  "description": "",
+  "description": "A Node package for deploying Web applications to Azure",
   "main": "main.js",
+  "homepage": "https://github.com/shubham-agarwal-27/package-name",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/shubham-agarwal-27/hooks-deploy-to-azure.git"
+  }
 }
