@@ -53,6 +53,7 @@ This repository contains a node script that will set your GitHub repository so t
     - That's it for the GitHub PAT token.
 
 ## Azure Tenant ID
+  - It is a mandatory input.
   - The tenant id for your azure directory will be used for accessing and managing resources present.
   - How to get the Azure Tenant ID?:
     - Go to https://portal.azure.com
@@ -62,6 +63,7 @@ This repository contains a node script that will set your GitHub repository so t
     - Paste the content to the right side of "tenant_id:" mentioned in the file. DO NOT CHANGE ANYTHING ELSE. The input format should be like this => "tenant_id:<tenant_id>"
 
 ## Subscription ID
+  - It is a mandatory input.
   - How to get the Subscription ID?:
     - Go to https://portal.azure.com
     - Go to Subscriptions
