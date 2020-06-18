@@ -51,7 +51,7 @@ function installPackages(){
     console.log("Installing packages...");
     console.log();
     return new Promise(resolve => {
-        exec('npm install fs express uuid open request tweetsodium', (error, stdout, stderr) => {
+        exec('npm install fs express uuid open node-fetch tweetsodium process', (error, stdout, stderr) => {
             console.log(stdout);
             resolve();
 		});
