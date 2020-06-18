@@ -75,8 +75,13 @@ This repository contains a node script that will set your GitHub repository so t
     - If you have any resource group in your tenant and want us to create a resource in that resource group
     - If you don't have a resource group by that name but want us to create one with the name you provide
   - Important note => "Resource group names only allow alphanumeric characters, periods, underscores, hyphens and parenthesis and cannot end in a period."
-  - The input format should be like this => "resource_group:<resource group name>"
   - If you don't provide us with a resource group name then one will be created for you with the name => ResGrp${{Alpha numeric characters of your repository name}} => example - "ResGrpnodeexpressappshubag" where the repository name is "node-express-app-shubag"
+  - How to check resource groups in your tenant?
+    - Go to https://portal.azure.com
+    - Type "All Resource Groups" in the search bar
+    - A list is shown for various resource groups in your tenant
+    - Copy the name of the resource group that contains the resosurce to be used.
+    - The input format should be like this => "resource_group:<resource group name>"
 
 ## Resource
   - You may give the resource name in one of the following cases:-
@@ -84,5 +89,10 @@ This repository contains a node script that will set your GitHub repository so t
     - If you don't have a resource by this name, but want one to be created in the resource group name you provided
     - If you don't have a resource by this name, but want one to be created in the resource group which we custom create for you
   - Important note => "Resource names only allow alphanumeric characters"
-  - The input format should be like this => "resource:<resource name>"
   - If you don't provide us with a resource group name then one will be created for you with the name => Res${{Alpha numeric characters of your repository name}} => example - "Resnodeexpressappshubag" where the repository name is "node-express-app-shubag"
+  - How to check resources in your tenant?
+    - Go to https://portal.azure.com
+    - Type "All Resources" in the search bar
+    - A list is shown for various resources in your tenant
+    - Copy the name of the resource to be used.
+    - The input format should be like this => "resource:<resource name>"

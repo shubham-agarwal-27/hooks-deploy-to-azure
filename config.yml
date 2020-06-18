@@ -11,60 +11,22 @@ Getting Started:
 
 How to Deploy?:
   - First, you need to give the following MANDATORY inputs in the give_inputs.txt:
-    
+
     - GitHub PAT Token:
-      - This token will be used in creating secrets in your GitHub account which are required during the workflow execution.
-      - The token should have "repo scope".
-      - How to get the GitHub PAT token?:
-        - Go to https://github.com
-        - Go Settings in your account
-        - Click on Developer Settings
-        - Click on Personal access tokens and then further click on "Generate new token"
-        - Give some note associated with the token for your aid
-        - Select the repo scope for this token and Click on Generate token.
-        - Make sure you copy the token being shown to you as you won't be able to get the value in future
-        - Open the give_inputs.txt file in your local repository. 
-        - Paste the content to the right side of "github_PAT:" mentioned in the file. DO NOT CHANGE ANYTHING ELSE. The input format should be like this => "github_PAT:<GitHub_PAT>"
-        - That's it for the GitHub PAT token.
+      - Repo scope needed.
+      - Visit (https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#github-pat) to know how to get a GitHub APT Token.
     
     - Azure Tenant ID:
-      - The tenant id for your azure directory will be used for accessing and managing resources present.
-      - How to get the Azure Tenant ID?:
-        - Go to https://portal.azure.com
-        - Go to Azure Active Directory
-        - You will see a box with Tenant information written on it
-        - Copy the tenant ID
-        - Paste the content to the right side of "tenant_id:" mentioned in the file. DO NOT CHANGE ANYTHING ELSE. The input format should be like this => "tenant_id:<tenant_id>"
+      - Visit (https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#azure-tenant-id) to know how to get your Azure Tenant ID.
 
     - Subscription ID:
-      - How to get the Subscription ID?:
-        - Go to https://portal.azure.com
-        - Go to Subscriptions
-        - Select the subscription you want.
-        - Copy the subscription id
-        - Paste the content to the right side of "tenant_id:" mentioned in the file. DO NOT CHANGE ANYTHING ELSE. The input format should be like this => "subscription:<subscription_id>"
+      - Visit (https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#subscription-id) to know how to get a subscription
 
   - Next, you have two optional fields:
 
     - Resource Group:
-      - You may give the resource group name in one of the following cases:-
-
-        - If you have any resource group in your tenant and want to use some resource in that resource group
-        - If you have any resource group in your tenant and want us to create a resource in that resource group
-        - If you don't have a resource group by that name but want us to create one with the name you provide
-      
-      - Important note => "Resource group names only allow alphanumeric characters, periods, underscores, hyphens and parenthesis and cannot end in a period."
-      - The input format should be like this => "resource_group:<resource group name>"
-      - If you don't provide us with a resource group name then one will be created for you with the name => ResGrp${{Alpha numeric characters of your repository name}} => example - "ResGrpnodeexpressappshubag" where the repository name is "node-express-app-shubag"
+      - Visit (https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#resource-group) to know how to get a resource group name
 
     - Resource:
-      - You may give the resource name in one of the following cases:-
-
-        - If you have any resource in the resource group name you provided
-        - If you don't have a resource by this name, but want one to be created in the resource group name you provided
-        - If you don't have a resource by this name, but want one to be created in the resource group which we custom create for you
-      
-      - Important note => "Resource names only allow alphanumeric characters"
-      - The input format should be like this => "resource:<resource name>"
-      - If you don't provide us with a resource group name then one will be created for you with the name => Res${{Alpha numeric characters of your repository name}} => example - "Resnodeexpressappshubag" where the repository name is "node-express-app-shubag"
+      - Visit (https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#resource) to know how to get a resource name
 
