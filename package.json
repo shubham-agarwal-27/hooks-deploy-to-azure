@@ -10,6 +10,6 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git://github.com/shubham-agarwal-27/hooks-deploy-to-azure.git"
+    "url": "https://github.com/shubham-agarwal-27/hooks-deploy-to-azure.git"
   }
 }
