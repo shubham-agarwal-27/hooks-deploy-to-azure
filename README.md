@@ -23,7 +23,6 @@ This repository contains a node script that will set your GitHub repository so t
    - **[Subscription](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#subscription-id)**
    - **[Resource group](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#resource-group)** (Optional)
    - **[Resource](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#resource)** (Optional)  
-   
    The inputs should be in the following format:
     ```
         github_PAT: <guid>
