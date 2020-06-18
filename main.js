@@ -132,7 +132,7 @@ function createDirectory(dir_name){
 // };
 
 async function main(){
-    //await installPackages();
+    await installPackages();
     const original_content = await getInputFileContent();
     await writeFile('workflow_inputs.txt', original_content);
     var hooks = await getFilesInDirectory(".git/hooks");
