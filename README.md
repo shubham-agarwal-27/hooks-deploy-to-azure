@@ -1,6 +1,6 @@
 # Application to Deploy a Node Web App To Azure
 
-With the hooks-deploy-to-azure npm package you can deploy you can deploy your Node web app to Azure.
+With the hooks-deploy-to-azure npm package you can deploy your Node web app to Azure.
   
 Get started today with a [free Azure account](https://azure.com/free/open-source)!
   
@@ -83,7 +83,7 @@ This repository contains a node script that will set your GitHub repository so t
     - Type "Resource Groups" in the search bar
     - A list is shown for various resource groups in your tenant
     - Copy the name of the resource group that contains the resosurce to be used.
-    - The input format should be like this => "resource_group:<resource group name>"
+    - The input format should be like this => "resource_group:<resource_group_name>"
 
 ## Resource
   - You may give the resource name in one of the following cases:-
@@ -97,4 +97,4 @@ This repository contains a node script that will set your GitHub repository so t
     - Type "All Resources" in the search bar
     - A list is shown for various resources in your tenant
     - Copy the name of the resource to be used.
-    - The input format should be like this => "resource:<resource name>"
+    - The input format should be like this => "resource:<resource_name>"
