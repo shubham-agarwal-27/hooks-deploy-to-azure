@@ -1,7 +1,7 @@
 const { exec } = require('child_process');
 const fs = require('fs');
 
-const input_keys = ['github_PAT', 'tenant_id', 'workflow', 'subscription', 'resource_group', 'resource'];
+const input_keys = ['github_PAT', 'tenant_id', 'subscription', 'resource_group', 'resource'];
 
 
 /**
@@ -161,7 +161,8 @@ async function main(){
     var extra_files = ['', '/open_workflow_run', '/give_inputs.txt', 'config.yml','templates/'];
     await appendFile('.gitignore', extra_files.join("\n"));
 
-    console.log("Open config.yml file created in your repository to get started with the deployment.");
+    console.log("Visit https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md for any information.")
+    console.log("Or you can open config.yml file created in your repository to get started with the deployment.");
     console.log();
 }
 

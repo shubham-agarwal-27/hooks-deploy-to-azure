@@ -4,7 +4,7 @@ const fs = require('fs');
 const { exec } = require('child_process');
 const { exit } = require('process');
 
-const input_keys = ['github_PAT', 'tenant_id', 'workflow', 'subscription', 'resource_group', 'resource'];
+const input_keys = ['github_PAT', 'tenant_id', 'subscription', 'resource_group', 'resource'];
 const give_inputs_err_msg = "There seems to be no give_inpts.txt file. If deleted, just create a give_inputs.txt file and follow the instructions given before";
 const workflow_err_msg = "There seems to be some issue with the templates folder. Delete the folder (if present) and run the program again."
 /**
@@ -279,11 +279,10 @@ async function createNewWorkflow(repo_analysis_result, file_inputs){
 		console.log();
 	}
 	else{
-		var workflow = file_inputs[2].replace(/\s+/g, '').split(":")[1];
-		var workflow_file = 'templates/'+repo_analysis_result+'/'+workflow;
+		var workflow_file = 'templates/'+repo_analysis_result+'/workflow.yml';
 		console.log();
 
-		var resource_name = file_inputs[5].replace(/\s+/g, '').split(":")[1];
+		var resource_name = file_inputs[4].replace(/\s+/g, '').split(":")[1];
 		if(resource_name === ''){
 			resource_name = await getRepoName();
 			resource_name = resource_name.replace(/[^0-9A-Z]+/gi,"");
@@ -326,6 +325,7 @@ async function main(){
 		var repo_path = await getRepoPath();
 		var repo_files = await getAllFiles(repo_path);
 		var repo_analysis_result = await getRepoAnalysis(repo_files);
+		repo_analysis_result = 'node';
 		createNewWorkflow(repo_analysis_result, file_inputs);
 	}
 };

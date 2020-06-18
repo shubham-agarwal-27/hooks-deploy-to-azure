@@ -80,7 +80,7 @@ This repository contains a node script that will set your GitHub repository so t
   - If you don't provide us with a resource group name then one will be created for you with the name => ResGrp${{Alpha numeric characters of your repository name}} => example - "ResGrpnodeexpressappshubag" where the repository name is "node-express-app-shubag"
   - How to check resource groups in your tenant?
     - Go to https://portal.azure.com
-    - Type "All Resource Groups" in the search bar
+    - Type "Resource Groups" in the search bar
     - A list is shown for various resource groups in your tenant
     - Copy the name of the resource group that contains the resosurce to be used.
     - The input format should be like this => "resource_group:<resource group name>"
