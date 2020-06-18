@@ -23,14 +23,14 @@ This repository contains a node script that will set your GitHub repository so t
    - **[Subscription](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#subscription-id)**
    - **[Resource group](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#resource-group)** (Optional)
    - **[Resource](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#resource)** (Optional)  
-   - The inputs should be in the following format:
-     ```
+ - The inputs should be in the following format:
+    ```
         github_PAT: <guid>
         tenant_id: <guid>
         subscription: <guid>
         resource_group: sampleresourcegroup
         resource: sampleresource
-     ```
+    ```
   - Once, the inputs have been supplied, go ahead with committing your changes to GitHub. Once, git push is run, you will be taken to an authentication URL, where you would be asked for your consent. Once authorized, your commits would be pushed and a GitHub Workflow would be triggered.
   - The Workflow run can be viewed in your browser by running the following command from the root of your repository:
     ```
