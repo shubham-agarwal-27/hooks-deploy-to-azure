@@ -15,7 +15,7 @@ This repository contains a node script that will set your GitHub repository so t
  - This creates a folder "@shubham-agarwal-27/hooks-deploy-to-azure" inside the node_modules folder.
  - By staying in the root of your repository, run the following node command:
  ```
-   node node_modules/@shubham-agarwal-27/hooks-deploy-to-azure/main.js
+   node node_modules/@shubham-agarwal-27/hooks-deploy-to-azure
  ```
  - Now, open the workflow_inputs.txt file that has been created in the root of your repository and give the following inputs:
    - **[GitHub PAT](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#github-pat)** (with repo_scope)
