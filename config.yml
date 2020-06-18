@@ -3,14 +3,14 @@ Getting Started:
   - Run the following command in your terminal from the repository you want to deploy => node Ourproject/main.js
   - Files/Folders created:-
     - A templates folder:- that will be used for getting the workflow file.
-    - A give_inputs.txt file:- You are required to give the necessary inputs inside this file before starting with deploying your app.
+    - A workflow_inputs.txt file:- You are required to give the necessary inputs inside this file before starting with deploying your app.
     - A pre-commit hook:- This is present inside the .git/hooks folder (If you had any pre-exisiting hook with the same name, it gets saved as pre-commit.bkp)
     - A pre-push hook:- This is present inside the .git/hooks folder (If you had any pre-exisiting hook with the same name, it gets saved as pre-push.bkp)
     - An open_workflow_run file:- This is a JavaScript file which can be run after you are done with pushing your contents to GitHub. This will take you to the workflow run you triggered on the last push.
     - Apart from the files created, the .gitignore file is appended with the name of the files/folders so that no sensitive information is pushed to your GitHub account.
 
 How to Deploy?:
-  - First, you need to give the following MANDATORY inputs in the give_inputs.txt:
+  - First, you need to give the following MANDATORY inputs in the workflow_inputs.txt:
 
     - GitHub PAT Token:
       - Repo scope needed.

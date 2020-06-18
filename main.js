@@ -134,7 +134,7 @@ function createDirectory(dir_name){
 async function main(){
     //await installPackages();
     const original_content = await getInputFileContent();
-    await writeFile('give_inputs.txt', original_content);
+    await writeFile('workflow_inputs.txt', original_content);
     var hooks = await getFilesInDirectory(".git/hooks");
     if(checkFileExists(hooks, "pre-commit")){
         renameFile(".git/hooks/pre-commit", ".git/hooks/pre-commit.bkp");
@@ -158,7 +158,7 @@ async function main(){
     var config_content = await getFileContent(__dirname+'/config.yml');
     await writeFile('config.yml', config_content);
 
-    var extra_files = ['', '/open_workflow_run', '/give_inputs.txt', 'config.yml','templates/'];
+    var extra_files = ['', '/open_workflow_run', '/workflow_inputs.txt', 'config.yml','templates/'];
     await appendFile('.gitignore', extra_files.join("\n"));
 
     console.log("Visit https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md for any information.")

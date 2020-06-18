@@ -5,7 +5,7 @@ const { exec } = require('child_process');
 const { exit } = require('process');
 
 const input_keys = ['github_PAT', 'tenant_id', 'subscription', 'resource_group', 'resource'];
-const give_inputs_err_msg = "There seems to be no give_inpts.txt file. If deleted, just create a give_inputs.txt file and follow the instructions given before";
+const workflow_inputs_err_msg = "There seems to be no workflow_inputs.txt file. If deleted, just create a workflow_inputs.txt file and follow the instructions given before";
 const workflow_err_msg = "There seems to be some issue with the templates folder. Delete the folder (if present) and run the program again."
 /**
  * Get the contents of the file that was at the time of installation. This will be used when user messes the file.
@@ -58,7 +58,7 @@ async function checkFileContentMessed(file_name){
 		var user_inputs = await getFileContent(file_name);
 	}
 	catch(reject){
-		console.log(give_inputs_err_msg);
+		console.log(workflow_inputs_err_msg);
 		exit(1);
 	}
 	var split_input;
@@ -308,10 +308,10 @@ async function createNewWorkflow(repo_analysis_result, file_inputs){
 
 async function main(){
 	var original_content = getFileOriginalContent();
-	var file_messed = await checkFileContentMessed('give_inputs.txt');
+	var file_messed = await checkFileContentMessed('workflow_inputs.txt');
 	if(file_messed){
 		try{
-			await writeFile('give_inputs.txt', original_content);
+			await writeFile('workflow_inputs.txt', original_content);
 		}
 		catch(reject){
 			console.log("*We have encountered some error. Please run the git commit command again..");
@@ -321,7 +321,7 @@ async function main(){
 		exit(1);
 	}
 	else{
-		var file_inputs = await getFileContent('give_inputs.txt');
+		var file_inputs = await getFileContent('workflow_inputs.txt');
 		var repo_path = await getRepoPath();
 		var repo_files = await getAllFiles(repo_path);
 		var repo_analysis_result = await getRepoAnalysis(repo_files);

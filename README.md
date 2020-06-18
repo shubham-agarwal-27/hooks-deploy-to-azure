@@ -17,7 +17,7 @@ This repository contains a node script that will set your GitHub repository so t
  ```
    node node_modules/@shubham-agarwal-27/hooks-deploy-to-azure/main.js
  ```
- - Now, open the give_inputs.txt file that has been created in the root of your repository and give the following inputs:
+ - Now, open the workflow_inputs.txt file that has been created in the root of your repository and give the following inputs:
    - **[GitHub PAT](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#github-pat)** (with repo_scope)
    - **[Azure Tenant ID](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#azure-tenant-id)**
    - **[Subscription](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#subscription-id)**
@@ -48,7 +48,7 @@ This repository contains a node script that will set your GitHub repository so t
     - Give some note associated with the token for your aid
     - Select the repo scope for this token and Click on Generate token.
     - Make sure you copy the token being shown to you as you won't be able to get the value in future
-    - Open the give_inputs.txt file in your local repository. 
+    - Open the workflow_inputs.txt file in your local repository. 
     - Paste the content to the right side of "github_PAT:" mentioned in the file. DO NOT CHANGE ANYTHING ELSE. The input format should be like this => "github_PAT:<GitHub_PAT>"
     - That's it for the GitHub PAT token.
 
