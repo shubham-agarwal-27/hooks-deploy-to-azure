@@ -298,7 +298,7 @@ async function createNewWorkflow(repo_analysis_result, file_inputs){
 				console.log("We have encountered some error. Please run the git commit command again..");
 				exit(1);
 			}
-			console.log("New " + workflow + " file created...");
+			console.log("New workflow.yml file created...");
 			exec('git add ".github"', (error, stdout, stderr) => {
 				console.log(stdout);
 			});
