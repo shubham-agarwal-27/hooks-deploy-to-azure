@@ -18,11 +18,11 @@ This repository contains a node script that will set your GitHub repository so t
    node node_modules/@shubham-agarwal-27/hooks-deploy-to-azure
  ```
  - Now, open the workflow_inputs.txt file that has been created in the root of your repository and give the following inputs:
-   - **[GitHub PAT](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#github-pat)** (with repo_scope)
-   - **[Azure Tenant ID](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#azure-tenant-id)**
-   - **[Subscription](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#subscription-id)**
-   - **[Resource group](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#resource-group)** (Optional)
-   - **[Resource](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#resource)** (Optional. If you give a resource name that doesn't exists **Make sure it is unique, else you won't be able to create a resource**)  
+   - **[GitHub PAT](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#github-pat)** (with repo_scope)
+   - **[Azure Tenant ID](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#azure-tenant-id)**
+   - **[Subscription](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#subscription-id)**
+   - **[Resource group](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#resource-group)** (Optional)
+   - **[Resource](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#resource)** (Optional. If you give a resource name that doesn't exists **Make sure it is unique, else you won't be able to create a resource**)  
  - The inputs should be in the following format:
     ```
         github_PAT: <guid>
