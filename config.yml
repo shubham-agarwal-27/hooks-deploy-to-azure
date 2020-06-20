@@ -1,4 +1,10 @@
-title: Deploy To Azure Using Git Hooks and GitHub Actions
+github_PAT: 
+tenant_id: 
+subscription: 
+resource_group: 
+resource: 
+
+----------ONLY GIVE INPUTS IN THE SPACE PROVIDED TO THE RIGHT SIDE OF EVERY FIELD ABOVE.... DO NOT CHANGE ANYTHING ELSE-------------
 Getting Started:
   - Run the following command in your terminal from the repository you want to deploy => node Ourproject/main.js
   - Files/Folders created:-
@@ -10,7 +16,7 @@ Getting Started:
     - Apart from the files created, the .gitignore file is appended with the name of the files/folders so that no sensitive information is pushed to your GitHub account.
 
 How to Deploy?:
-  - First, you need to give the following MANDATORY inputs in the workflow_inputs.txt:
+  - First, you need to give the following MANDATORY inputs in this file in the space provided at the top:
 
     - GitHub PAT Token:
       - Repo scope needed.

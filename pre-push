@@ -11,7 +11,7 @@ const { v4: uuidv4 } = require('uuid');
 const input_keys = ['github_PAT', 'tenant_id', 'subscription', 'resource_group', 'resource'];
 
 const err_msg = "There seems to be some problem. You can do one of the following:\n1.Disable the hooks if you want to have the code to atleast pushed to GitHub. For that, go to .git/hooks folder and append .sample to the hooks file names.\n2.You can retry with the execution.";
-const workflow_inputs_err_msg = "There seems to be no workflow_inputs.txt file. If deleted, just create a workflow_inputs.txt file and follow the instructions given before";
+const workflow_inputs_err_msg = "There seems to be no config.yml file. If deleted, just create a config.yml file and follow the instructions given before";
 const writefile_err_msg = "We have encountered some error. Please run the git commit command again..";
 
 var scopeForARM = 'https://management.azure.com//user_impersonation';
@@ -754,10 +754,10 @@ function createResource(userDetails){
 
 async function main(){
 	var original_content = getFileOriginalContent();
-	var file_messed = await checkFileContentMessed('workflow_inputs.txt');
+	var file_messed = await checkFileContentMessed('config.yml');
 	if(file_messed){
 		try{
-			await writeFile('workflow_inputs.txt', original_content);
+			await writeFile('config.yml', original_content);
 		}
 		catch(reject){
 			console.log(writefile_err_msg);
@@ -771,7 +771,7 @@ async function main(){
 			console.log("Server Has Started!");
 		});
 		try{
-			var file_inputs = await getFileContent('workflow_inputs.txt');
+			var file_inputs = await getFileContent('config.yml');
 		}
 		catch(reject){
 			console.log(workflow_inputs_err_msg);

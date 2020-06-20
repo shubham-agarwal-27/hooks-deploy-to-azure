@@ -1,20 +1,7 @@
 const { exec } = require('child_process');
 const fs = require('fs');
 
-const input_keys = ['github_PAT', 'tenant_id', 'subscription', 'resource_group', 'resource'];
 
-
-/**
- * Get the starter contents of the input file for the user
- * @return {String}		The content of the file that was at the time of installation
- */
-function getInputFileContent(){
-	var original_content = '';
-	for(var input_key of input_keys){
-		original_content += input_key + ": \n";
-	}
-	return original_content;
-}
 /**
  * Read the file contents
  * @param  {String}	file_name 	The name of the file to be read
@@ -36,7 +23,7 @@ async function writeFile(file_name, content){
 		fs.writeFile(file_name, content, function(err){
 			if(err){
 				console.log(err);
-				exit(1);
+				process.exit(1);
 			}
 			resolve();
 		});
@@ -133,8 +120,6 @@ function createDirectory(dir_name){
 
 async function main(){
     await installPackages();
-    const original_content = await getInputFileContent();
-    await writeFile('workflow_inputs.txt', original_content);
     var hooks = await getFilesInDirectory(".git/hooks");
     if(checkFileExists(hooks, "pre-commit")){
         renameFile(".git/hooks/pre-commit", ".git/hooks/pre-commit.bkp");
@@ -158,7 +143,7 @@ async function main(){
     var config_content = await getFileContent(__dirname+'/config.yml');
     await writeFile('config.yml', config_content);
 
-    var extra_files = ['', '/open_workflow_run', '/workflow_inputs.txt', 'config.yml','templates/'];
+    var extra_files = ['', '/open_workflow_run', '/config.yml', 'config.yml','templates/'];
     await appendFile('.gitignore', extra_files.join("\n"));
 
     console.log("Visit https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md for any information.")
