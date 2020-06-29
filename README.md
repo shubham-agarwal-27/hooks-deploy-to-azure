@@ -25,7 +25,6 @@ This repository contains a node script that will set your GitHub repository so t
  - The inputs should be in the following format:
     ```
         github_PAT: <guid>
-        tenant_id: <guid>
         subscription: <guid>
         resource_group: sampleresourcegroup
         resource: sampleresource
