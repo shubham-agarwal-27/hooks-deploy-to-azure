@@ -7,7 +7,7 @@ const { exec } = require('child_process');
 const fs = require('fs');
 const { exit } = require('process');
 
-const input_keys = ['github_PAT', 'tenant_id', 'subscription', 'resource_group', 'resource'];
+const input_keys = ['github_PAT', 'subscription', 'resource_group', 'resource'];
 const workflow_inputs_err_msg = "There seems to be no config.yml file. If deleted, just create a config.yml file and follow the instructions given before";
 const err_msg = "There seems to be some problem. You can do one of the following:\n1.Go to the actions tab in your repository.\n2.You can retry with the execution.";
 /**
@@ -34,19 +34,15 @@ function waitForTime(time){
 /**
  * Read the file contents
  * @param  {String}	file_name 	The name of the file to be read
- * @return {Array}				The array of each line content of the given file
+ * @return {Promise}			Resolves the list of lines in the given file
  */
 function getFileContent(file_name){
-	return new Promise((resolve, reject) => {
-		fs.readFile(file_name, (err, data) => {
-			if(err){
-				reject(err);
-			}
-			else{
-				resolve(data.toString().split("\n"));
-			}
-		});
-	});
+	try{
+        return fs.readFileSync(file_name).toString().split("\n");
+    }
+    catch(err){
+        throw "Cannot get the contents from " + file_name;
+    }
 }
 /**
  * Get all the details pertaining to a user's Github account and their subscription and resource choice.
@@ -58,25 +54,30 @@ async function getUserDetails(file_inputs){
 	for(var input = 0; input < input_keys.length; input++){
 		userDetails[input_keys[input]] = file_inputs[input].replace(/\s+/g, '').split(":")[1];
 	}
-	return new Promise(function(resolve) {
+	return new Promise(function(resolve, reject) {
 		const { exec } = require('child_process');
-		exec('git config --list', (error, stdout, stderr) => {
-			var array_stdout = stdout.split("\n");
-			for(var single_info of array_stdout){
-				var info_splitted = single_info.split("=");
-				if(info_splitted[0] === 'user.name'){
-					userDetails['username'] = info_splitted[1];
-				}
+		exec('git config --list', (error, stdout) => {
+            if(error){
+                reject(error);
+            }
+            else{
+                var array_stdout = stdout.split("\n");
+                for(var single_info of array_stdout){
+                    var info_splitted = single_info.split("=");
+                    if(info_splitted[0] === 'user.name'){
+                        userDetails['username'] = info_splitted[1];
+                    }
 
-				if(info_splitted[0] === 'user.email'){
-					userDetails['user_email'] = info_splitted[1];
-				}
+                    if(info_splitted[0] === 'user.email'){
+                        userDetails['user_email'] = info_splitted[1];
+                    }
 
-				if(info_splitted[0] === 'remote.origin.url'){
-					userDetails['repo_name'] = info_splitted[1].split("https://github.com/")[1].split("/")[1].split(".")[0];
-				}
-			}
-			resolve(userDetails);
+                    if(info_splitted[0] === 'remote.origin.url'){
+                        userDetails['repo_name'] = info_splitted[1].split("https://github.com/")[1].split("/")[1].split(".")[0];
+                    }
+                }
+                resolve(userDetails);
+            }
 		});
   	});
 }

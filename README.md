@@ -4,7 +4,7 @@ With the hooks-deploy-to-azure npm package you can deploy your Node web app to A
   
 Get started today with a [free Azure account](https://azure.com/free/open-source)!
   
-This repository contains a node script that will set your GitHub repository so that you can deploy your node app to Azure.
+This repository contains a node script that will set your GitHub repository so that you can deploy your node app to Azure without leaving your git terminal.
 
 ## Getting Started
 
@@ -18,11 +18,10 @@ This repository contains a node script that will set your GitHub repository so t
    node node_modules/@shubham-agarwal-27/hooks-deploy-to-azure
  ```
  - Now, open the workflow_inputs.txt file that has been created in the root of your repository and give the following inputs:
-   - **[GitHub PAT](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#github-pat)** (with repo_scope)
-   - **[Azure Tenant ID](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#azure-tenant-id)**
-   - **[Subscription](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#subscription-id)**
+   - **[Azure Tenant ID](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#azure-tenant-id)** (Required)
+   - **[Subscription](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#subscription-id)** (Required)
    - **[Resource group](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#resource-group)** (Optional)
-   - **[Resource](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#resource)** (Optional. If you give a resource name that doesn't exists **Make sure it is unique, else you won't be able to create a resource**)  
+   - **[Resource](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#resource)** (Optional. If you gave an existing resource group in above input, make sure no resource exists with this name in the given resource group)  
  - The inputs should be in the following format:
     ```
         github_PAT: <guid>
@@ -31,7 +30,7 @@ This repository contains a node script that will set your GitHub repository so t
         resource_group: sampleresourcegroup
         resource: sampleresource
     ```
-  - Once, the inputs have been supplied, go ahead with committing your changes to GitHub. Once, git push is run, you will be taken to an authentication URL, where you would be asked for your consent. Once authorized, your commits would be pushed and a GitHub Workflow would be triggered.
+  - Once, the inputs have been supplied, go ahead with committing your changes to GitHub. Once git push is run, you will be prompted for Azure login, where you would be asked for your consent. Once authorized, your commits would be pushed and a GitHub Workflow would be triggered.
   - The Workflow run can be viewed in your browser by running the following command from the root of your repository:
     ```
       node open_workflow_run
@@ -50,17 +49,6 @@ This repository contains a node script that will set your GitHub repository so t
     - Make sure you copy the token being shown to you as you won't be able to get the value in future
     - Open the workflow_inputs.txt file in your local repository. 
     - Paste the content to the right side of "github_PAT:" mentioned in the file. DO NOT CHANGE ANYTHING ELSE. The input format should be like this => "github_PAT:<GitHub_PAT>"
-    - That's it for the GitHub PAT token.
-
-## Azure Tenant ID
-  - It is a mandatory input.
-  - The tenant id for your azure directory will be used for accessing and managing resources present.
-  - How to get the Azure Tenant ID?:
-    - Go to https://portal.azure.com
-    - Go to Azure Active Directory
-    - You will see a box with Tenant information written on it
-    - Copy the tenant ID
-    - Paste the content to the right side of "tenant_id:" mentioned in the file. DO NOT CHANGE ANYTHING ELSE. The input format should be like this => "tenant_id:<tenant_id>"
 
 ## Subscription ID
   - It is a mandatory input.

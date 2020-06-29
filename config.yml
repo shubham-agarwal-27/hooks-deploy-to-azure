@@ -1,12 +1,11 @@
-github_PAT: 
-tenant_id: 
-subscription: 
-resource_group: 
-resource: 
+github_PAT: <github_PAT>
+subscription: <subscription>
+resource_group: <resource_group>
+resource: <resource>
 
 ----------ONLY GIVE INPUTS IN THE SPACE PROVIDED TO THE RIGHT SIDE OF EVERY FIELD ABOVE.... DO NOT CHANGE ANYTHING ELSE-------------
 Getting Started:
-  - Run the following command in your terminal from the repository you want to deploy => node Ourproject/main.js
+  - Run the following command in your terminal from the repository you want to deploy => node node_modules/@shubham-agarwal-27/hooks-deploy-to-azure
   - Files/Folders created:-
     - A templates folder:- that will be used for getting the workflow file.
     - A workflow_inputs.txt file:- You are required to give the necessary inputs inside this file before starting with deploying your app.
@@ -21,9 +20,6 @@ How to Deploy?:
     - GitHub PAT Token:
       - Repo scope needed.
       - Visit (https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#github-pat) to know how to get a GitHub APT Token.
-    
-    - Azure Tenant ID:
-      - Visit (https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#azure-tenant-id) to know how to get your Azure Tenant ID.
 
     - Subscription ID:
       - Visit (https://github.com/shubham-agarwal-27/hooks-deploy-to-azure/blob/master/README.md#subscription-id) to know how to get a subscription
