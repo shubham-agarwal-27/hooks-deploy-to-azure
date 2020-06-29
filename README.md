@@ -18,7 +18,7 @@ This repository contains a node script that will set your GitHub repository so t
    node node_modules/@shubham-agarwal-27/hooks-deploy-to-azure
  ```
  - Now, open the workflow_inputs.txt file that has been created in the root of your repository and give the following inputs:
-   - **[Azure Tenant ID](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#azure-tenant-id)** (Required)
+   - **[Github PAT](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#gitub-pat)** (Required)
    - **[Subscription](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#subscription-id)** (Required)
    - **[Resource group](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#resource-group)** (Optional)
    - **[Resource](https://github.com/shubham-agarwal-27/hooks-deploy-to-azure#resource)** (Optional. If you gave an existing resource group in above input, make sure no resource exists with this name in the given resource group)  
