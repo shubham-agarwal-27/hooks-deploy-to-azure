@@ -17,7 +17,7 @@
     "express": "^4.17.1",
     "fs": "0.0.1-security",
     "keytar": "^6.0.1",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^3.1.1",
     "open": "^7.0.4",
     "process": "^0.11.10",
     "readline": "^1.3.0",
